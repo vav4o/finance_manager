@@ -1,0 +1,4 @@
+finance_manager.db
+server/app/__pycache__/main.cpython-312.pyc
+server/app/db/__pycache__/database.cpython-312.pyc
+venv
