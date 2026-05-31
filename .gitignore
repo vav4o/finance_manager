@@ -7,3 +7,5 @@ server/app/api/routes/__pycache__/users.cpython-312.pyc
 server/app/core/__pycache__/security.cpython-312.pyc
 server/app/schemas/__pycache__/user_schema.cpython-312.pyc
 server/app/models/__pycache__/user.cpython-312.pyc
+server/.env
+server/app/api/__pycache__/dependencies.cpython-312.pyc
