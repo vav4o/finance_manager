@@ -1,4 +1,8 @@
+Server:
 fastapi uvicorn
 sqlalchemy
 alembic
-"passlib[bcrypt]" python-jose[cryptography] pydantic-settings
+"passlib[bcrypt]" bcrypt==3.2.0 python-jose[cryptography] pydantic-settings
+
+
+Client:
