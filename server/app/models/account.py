@@ -17,6 +17,6 @@ class Account(Base):
     name = Column(String, nullable=False)
     type = Column(Enum(AccountType), default=AccountType.CASH)
     currency = Column(String, default="BGN")
-    initial_balance = Column(Float, default=0.0)
+    balance = Column(Float, default=0.0)
 
     user = relationship("User")

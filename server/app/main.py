@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
-from server.app.api.routes import users, accounts, categories
+from server.app.api.routes import users, accounts, categories, transactions
 from server.app.db.database import engine, Base, get_db
 
 Base.metadata.create_all(bind=engine)
@@ -14,6 +14,7 @@ app = FastAPI(
 app.include_router(users.router)
 app.include_router(accounts.router)
 app.include_router(categories.router)
+app.include_router(transactions.router)
 
 @app.get("/")
 def read_root():

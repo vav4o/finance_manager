@@ -22,7 +22,7 @@ def create_account(account_in: AccountCreate, current_user: User = Depends(get_c
         name=account_in.name,
         type=account_in.type,
         currency=account_in.currency,
-        initial_balance=account_in.initial_balance
+        balance=account_in.balance
     )
     db.add(db_account)
     db.commit()
@@ -53,7 +53,7 @@ def update_account(account_id: int, account_in: AccountCreate, current_user: Use
     cast(Any, db_account).name = account_in.name
     cast(Any, db_account).type = account_in.type
     cast(Any, db_account).currency = account_in.currency
-    cast(Any, db_account).initial_balance = account_in.initial_balance
+    cast(Any, db_account).balance = account_in.balance
     
     db.commit()
     db.refresh(db_account)

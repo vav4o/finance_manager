@@ -1,6 +1,7 @@
 Server:
 fastapi uvicorn
 sqlalchemy
+sqlalchemy-stubs
 alembic
 python-multipart
 "passlib[bcrypt]" bcrypt==3.2.0 python-jose[cryptography] pydantic-settings
