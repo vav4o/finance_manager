@@ -7,6 +7,8 @@ TITLE_COLOR = "#111827"
 SUBTITLE_COLOR = "#6b7280"
 STATUS_COLOR = "#2563eb"
 FORM_BACKGROUND = "#ffffff"
+HEADER_BACKGROUND = "#111827"
+HEADER_TEXT = "#ffffff"
 
 
 def apply_design(window):
@@ -16,9 +18,13 @@ def apply_design(window):
     style.theme_use("clam")
 
     style.configure("TFrame", background=FORM_BACKGROUND)
+    style.configure("Header.TFrame", background=HEADER_BACKGROUND)
     style.configure("TLabel", background=FORM_BACKGROUND, foreground=TEXT_COLOR, font=("Segoe UI", 10))
+    style.configure("Header.TLabel", background=HEADER_BACKGROUND, foreground=HEADER_TEXT, font=("Segoe UI", 16, "bold"))
+    style.configure("HeaderName.TLabel", background=HEADER_BACKGROUND, foreground=HEADER_TEXT, font=("Segoe UI", 10))
     style.configure("Title.TLabel", background=WINDOW_BACKGROUND, foreground=TITLE_COLOR, font=("Segoe UI", 20, "bold"))
     style.configure("Subtitle.TLabel", background=WINDOW_BACKGROUND, foreground=SUBTITLE_COLOR, font=("Segoe UI", 10))
+    style.configure("Section.TLabel", background=FORM_BACKGROUND, foreground=TITLE_COLOR, font=("Segoe UI", 13, "bold"))
     style.configure("TEntry", padding=6)
     style.configure("TButton", padding=8, font=("Segoe UI", 10, "bold"))
     style.configure("TNotebook", background=WINDOW_BACKGROUND, borderwidth=0)

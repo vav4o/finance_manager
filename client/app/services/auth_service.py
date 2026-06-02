@@ -22,6 +22,15 @@ def register_user(user_data):
     return post_json("/users/register", user_data)
 
 
+def get_token():
+    return access_token
+
+
+def logout_user():
+    global access_token
+    access_token = None
+
+
 def get_current_user():
     headers = {"Authorization": f"Bearer {access_token}"}
     return send_request("/users/me", headers=headers)

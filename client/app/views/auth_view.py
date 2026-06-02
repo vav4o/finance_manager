@@ -3,10 +3,12 @@ from tkinter import ttk
 
 from services.auth_service import login_user, register_user
 from ui.design import STATUS_COLOR
-from ui.widgets import add_entry
+from ui.widgets import add_entry, clear_window
 
 
-def create_auth_view(window):
+def create_auth_view(window, after_login):
+    clear_window(window)
+
     title = ttk.Label(window, text="Personal Finance Manager", style="Title.TLabel")
     title.pack(pady=(26, 6))
 
@@ -50,6 +52,7 @@ def create_auth_view(window):
         try:
             user = login_user(username, password)
             login_status.config(text=f"Welcome, {user['first_name']}!")
+            after_login(user)
         except Exception as exc:
             login_status.config(text=str(exc))
 

@@ -19,10 +19,45 @@ def send_request(path, body=None, headers=None):
         raise Exception("Cannot connect to the server.")
 
 
-def post_json(path, data):
+def auth_headers(token):
+    return {"Authorization": f"Bearer {token}"}
+
+
+def post_json(path, data, headers=None):
     body = json.dumps(data).encode("utf-8")
-    headers = {"Content-Type": "application/json"}
-    return send_request(path, body=body, headers=headers)
+    request_headers = {"Content-Type": "application/json"}
+    request_headers.update(headers or {})
+    return send_request(path, body=body, headers=request_headers)
+
+
+def put_json(path, data, headers=None):
+    body = json.dumps(data).encode("utf-8")
+    request_headers = {"Content-Type": "application/json"}
+    request_headers.update(headers or {})
+
+    url = f"{API_URL}{path}"
+    api_request = request.Request(url, data=body, headers=request_headers, method="PUT")
+
+    try:
+        with request.urlopen(api_request, timeout=8) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except error.HTTPError as exc:
+        raise Exception(read_error(exc))
+    except error.URLError:
+        raise Exception("Cannot connect to the server.")
+
+
+def delete_request(path, headers=None):
+    url = f"{API_URL}{path}"
+    api_request = request.Request(url, headers=headers or {}, method="DELETE")
+
+    try:
+        with request.urlopen(api_request, timeout=8):
+            return True
+    except error.HTTPError as exc:
+        raise Exception(read_error(exc))
+    except error.URLError:
+        raise Exception("Cannot connect to the server.")
 
 
 def post_form(path, data):
