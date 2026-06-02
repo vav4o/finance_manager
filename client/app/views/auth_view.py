@@ -1,9 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
+import re
 
 from services.auth_service import login_user, register_user
 from ui.design import STATUS_COLOR
 from ui.widgets import add_entry, clear_window
+
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def create_auth_view(window, after_login):
@@ -57,13 +60,15 @@ def create_auth_view(window, after_login):
             login_status.config(text=str(exc))
 
     def register():
+        password = register_password.get()
+        base_currency = register_currency.get().strip().upper()
         data = {
             "nickname": register_username.get().strip(),
             "email": register_email.get().strip(),
-            "password": register_password.get(),
+            "password": password,
             "first_name": register_first_name.get().strip(),
             "last_name": register_last_name.get().strip() or None,
-            "base_currency": register_currency.get().strip().upper(),
+            "base_currency": base_currency,
         }
 
         confirm_password = register_confirm.get()
@@ -72,8 +77,36 @@ def create_auth_view(window, after_login):
             register_status.config(text="Please fill username, email and first name.")
             return
 
+        if len(data["nickname"]) < 2:
+            register_status.config(text="Username must be at least 2 characters.")
+            return
+
+        if not EMAIL_PATTERN.match(data["email"]):
+            register_status.config(text="Please enter a valid email address.")
+            return
+
+        if len(data["first_name"]) < 2:
+            register_status.config(text="First name must be at least 2 characters.")
+            return
+
+        if len(password) < 8:
+            register_status.config(text="Password must be at least 8 characters.")
+            return
+
+        if len(password) > 50:
+            register_status.config(text="Password must be 50 characters or fewer.")
+            return
+
+        if len(password.encode("utf-8")) > 72:
+            register_status.config(text="Password is too long. Please use fewer symbols.")
+            return
+
         if data["password"] != confirm_password:
             register_status.config(text="Passwords do not match.")
+            return
+
+        if len(base_currency) != 3 or not base_currency.isalpha():
+            register_status.config(text="Base currency must be a 3-letter code.")
             return
 
         try:

@@ -161,15 +161,25 @@ def save_account():
     global account_id
 
     try:
+        name = account_name.get().strip()
+        currency = account_currency.get().strip().upper()
         data = {
-            "name": account_name.get().strip(),
+            "name": name,
             "type": account_type.get(),
-            "currency": account_currency.get().strip().upper(),
+            "currency": currency,
             "balance": float(account_balance.get()),
         }
 
-        if not data["name"]:
+        if not name:
             account_status.config(text="Please enter account name.")
+            return
+
+        if len(name) > 50:
+            account_status.config(text="Account name must be 50 characters or fewer.")
+            return
+
+        if len(currency) != 3 or not currency.isalpha():
+            account_status.config(text="Currency must be a 3-letter code.")
             return
 
         if account_id:
@@ -249,14 +259,19 @@ def load_categories():
 
 
 def save_category():
+    name = category_name.get().strip()
     data = {
-        "name": category_name.get().strip(),
+        "name": name,
         "type": category_type.get(),
         "icon_color": category_color.get().strip() or None,
     }
 
-    if not data["name"]:
+    if not name:
         category_status.config(text="Please enter category name.")
+        return
+
+    if len(name) > 50:
+        category_status.config(text="Category name must be 50 characters or fewer.")
         return
 
     try:
