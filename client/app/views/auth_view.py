@@ -63,7 +63,7 @@ def create_auth_view(window, after_login):
         password = register_password.get()
         base_currency = register_currency.get().strip().upper()
         data = {
-            "nickname": register_username.get().strip(),
+            "username": register_username.get().strip(),
             "email": register_email.get().strip(),
             "password": password,
             "first_name": register_first_name.get().strip(),
@@ -73,11 +73,11 @@ def create_auth_view(window, after_login):
 
         confirm_password = register_confirm.get()
 
-        if not data["nickname"] or not data["email"] or not data["first_name"]:
+        if not data["username"] or not data["email"] or not data["first_name"]:
             register_status.config(text="Please fill username, email and first name.")
             return
 
-        if len(data["nickname"]) < 2:
+        if len(data["username"]) < 2:
             register_status.config(text="Username must be at least 2 characters.")
             return
 
@@ -116,7 +116,7 @@ def create_auth_view(window, after_login):
             tabs.select(login_tab)
 
             login_username.delete(0, tk.END)
-            login_username.insert(0, data["nickname"])
+            login_username.insert(0, data["username"])
         except Exception as exc:
             register_status.config(text=str(exc))
 

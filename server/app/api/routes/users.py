@@ -31,7 +31,7 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
 
     db_user = User(
         email=user_in.email,
-        nickname=user_in.nickname,
+        username=user_in.username,
         first_name=user_in.first_name,
         last_name=user_in.last_name,
         base_currency=user_in.base_currency,
@@ -49,8 +49,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     """
     Login a user. Returns a JWT token.
     """
-    # Named usernames "nickname"... should fix this at some point TODO: VN
-    user = db.query(User).filter(User.nickname == form_data.username).first()
+    user = db.query(User).filter(User.username == form_data.username).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

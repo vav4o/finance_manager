@@ -10,7 +10,7 @@ class UserBase(BaseModel):
         max_length=50,
         pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$",
     )
-    nickname: str = Field(..., min_length=2, max_length=50)
+    username: str = Field(..., min_length=2, max_length=50)
     first_name: str = Field(..., min_length=2, max_length=50)
     last_name: Optional[str] = None
     base_currency: str = Field(default="BGN", min_length=3, max_length=3)
