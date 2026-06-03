@@ -1,8 +1,10 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+
 from server.app.schemas.account_schema import AccountResponse
 from server.app.schemas.category_schema import CategoryResponse
+from server.app.models.category import CategoryType
 
 class TransactionBase(BaseModel):
     account_id: int
@@ -23,6 +25,24 @@ class TransactionResponse(TransactionBase):
     account: Optional[AccountResponse] = None
     category: Optional[CategoryResponse] = None
     warning: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+        
+class CategoryStatResponse(BaseModel):
+    category_name: str
+    icon_color: Optional[str] = None
+    total_amount: float
+    type: CategoryType
+
+    class Config:
+        from_attributes = True
+        
+class MonthlyStatResponse(BaseModel):
+    year: int
+    month: int
+    income: float = 0.0
+    expense: float = 0.0
 
     class Config:
         from_attributes = True

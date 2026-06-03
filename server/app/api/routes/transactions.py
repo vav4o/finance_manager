@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, desc, asc
+from sqlalchemy import or_, desc, asc, case, extract
 from sqlalchemy import func
 from typing import cast, List, Optional
 from datetime import datetime
@@ -10,15 +10,93 @@ from server.app.db.database import get_db
 from server.app.models.transaction import Transaction
 from server.app.models.account import Account
 from server.app.models.category import Category, CategoryType
-from server.app.schemas.transaction_schema import TransactionCreate, TransactionResponse
+from server.app.schemas.transaction_schema import TransactionCreate, TransactionResponse, CategoryStatResponse, MonthlyStatResponse
 from server.app.api.dependencies import get_current_user
 from server.app.models.user import User
 from server.app.models.budget import Budget
+
 
 router = APIRouter(
     prefix="/transactions",
     tags=["Transactions"]
 )
+
+@router.get("/stats", response_model=List[CategoryStatResponse])
+def get_transaction_statistics(
+    month: Optional[int] = Query(None, ge=1, le=12),
+    year: Optional[int] = Query(None, ge=2000),
+    transaction_type: Optional[CategoryType] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get transaction statistics grouped by category
+    """
+    now = datetime.utcnow()
+    target_month = month if month else now.month
+    target_year = year if year else now.year
+
+    _, last_day = calendar.monthrange(target_year, target_month)
+    start_date = datetime(target_year, target_month, 1, 0, 0, 0)
+    end_date = datetime(target_year, target_month, last_day, 23, 59, 59)
+
+    query = db.query(
+        Category.name.label("category_name"),
+        Category.icon_color.label("icon_color"),
+        Category.type.label("type"),
+        func.sum(Transaction.amount).label("total_amount")
+    ).join(
+        Transaction, Transaction.category_id == Category.id
+    ).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.date >= start_date,
+        Transaction.date <= end_date
+    )
+    
+    if transaction_type:
+        query = query.filter(Category.type == transaction_type)
+        
+    stats_query = query.group_by(Category.id).all()
+
+    return stats_query
+
+@router.get("/monthly-stats", response_model=List[MonthlyStatResponse])
+def get_monthly_trend_statistics(
+    limit_months: int = Query(6, ge=1, le=24, description="How many months back"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get monthtly transaction statistics for the last n months
+    """
+    year_field = extract('year', Transaction.date).label("year")
+    month_field = extract('month', Transaction.date).label("month")
+
+    income_sum = func.sum(case((Category.type == CategoryType.INCOME, Transaction.amount), else_=0)).label("income")
+    expense_sum = func.sum(case((Category.type == CategoryType.EXPENSE, Transaction.amount), else_=0)).label("expense")
+
+    monthly_stats = db.query(
+        year_field,
+        month_field,
+        income_sum,
+        expense_sum
+    ).join(
+        Category, Transaction.category_id == Category.id
+    ).filter(
+        Transaction.user_id == current_user.id
+    ).group_by(
+        year_field,
+        month_field
+    ).order_by(
+        desc("year"), 
+        desc("month")
+    ).limit(
+        limit_months
+    ).all()
+
+    #reversed the results to old->new
+    return list(reversed(monthly_stats))
+
 
 @router.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
 def create_transaction(transaction_in: TransactionCreate, ignore_budget_limit: bool = Query(False),current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
