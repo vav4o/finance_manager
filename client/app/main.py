@@ -8,15 +8,15 @@ from views.dashboard_view import create_dashboard_view
 
 window = tk.Tk()
 window.title("Personal Finance Manager")
-window.geometry("500x650")
-window.minsize(500, 650)
+window.geometry("620x720")
+window.minsize(620, 720)
 window.resizable(True, True)
 
 apply_design(window)
 
 
 def show_login():
-    window.geometry("500x650")
+    window.geometry("620x720")
     create_auth_view(window, show_dashboard)
 
 

@@ -18,14 +18,14 @@ def create_auth_view(window, after_login):
     subtitle = ttk.Label(window, text="Login or create your account", style="Subtitle.TLabel")
     subtitle.pack(pady=(0, 20))
 
-    form = ttk.Frame(window, padding=18)
+    form = ttk.Frame(window, padding=22)
     form.pack(fill="both", expand=True, padx=28, pady=(0, 28))
 
     tabs = ttk.Notebook(form)
     tabs.pack(fill="both", expand=True)
 
-    login_tab = ttk.Frame(tabs, padding=24)
-    register_tab = ttk.Frame(tabs, padding=24)
+    login_tab = ttk.Frame(tabs, padding=28)
+    register_tab = ttk.Frame(tabs, padding=28)
 
     tabs.add(login_tab, text="Login")
     tabs.add(register_tab, text="Register")

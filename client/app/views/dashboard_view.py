@@ -34,8 +34,8 @@ budgets_cache = {}
 
 def create_dashboard_view(window, user, logout):
     clear_window(window)
-    window.geometry("980x850")
-    window.minsize(900, 760)
+    window.geometry("1240x920")
+    window.minsize(1120, 820)
 
     header = ttk.Frame(window, style="Header.TFrame", padding=(24, 16))
     header.pack(fill="x")
@@ -49,8 +49,8 @@ def create_dashboard_view(window, user, logout):
 
     ttk.Button(header, text="Logout", command=logout).pack(side="right")
 
-    form = ttk.Frame(window, padding=18)
-    form.pack(fill="both", expand=True, padx=24, pady=24)
+    form = ttk.Frame(window, padding=22)
+    form.pack(fill="both", expand=True, padx=30, pady=24)
 
     if user.get("role") == "admin":
         create_admin_dashboard(form)
@@ -126,7 +126,7 @@ def create_accounts_tab(parent):
     account_name = add_entry(parent, "Name", 1)
 
     ttk.Label(parent, text="Type").grid(row=2, column=0, sticky="w", pady=7)
-    account_type = ttk.Combobox(parent, values=["cash", "bank", "card", "savings"], state="readonly", width=26)
+    account_type = ttk.Combobox(parent, values=["cash", "bank", "card", "savings"], state="readonly", width=34)
     account_type.grid(row=2, column=1, sticky="ew", pady=7, padx=(12, 0))
     account_type.set("cash")
 
@@ -161,7 +161,7 @@ def create_categories_tab(parent, title="Categories"):
     category_name = add_entry(parent, "Name", 1)
 
     ttk.Label(parent, text="Type").grid(row=2, column=0, sticky="w", pady=7)
-    category_type = ttk.Combobox(parent, values=["income", "expense"], state="readonly", width=26)
+    category_type = ttk.Combobox(parent, values=["income", "expense"], state="readonly", width=34)
     category_type.grid(row=2, column=1, sticky="ew", pady=7, padx=(12, 0))
     category_type.set("expense")
 
@@ -216,11 +216,11 @@ def create_transactions_tab(parent):
     transaction_filter_type.grid(row=0, column=1, sticky="ew", padx=(0, 10))
 
     ttk.Label(filter_frame, text="Account").grid(row=0, column=2, sticky="w", padx=(0, 6))
-    transaction_filter_account = ttk.Combobox(filter_frame, state="readonly", width=18)
+    transaction_filter_account = ttk.Combobox(filter_frame, state="readonly", width=24)
     transaction_filter_account.grid(row=0, column=3, sticky="ew", padx=(0, 10))
 
     ttk.Label(filter_frame, text="Category").grid(row=0, column=4, sticky="w", padx=(0, 6))
-    transaction_filter_category = ttk.Combobox(filter_frame, state="readonly", width=18)
+    transaction_filter_category = ttk.Combobox(filter_frame, state="readonly", width=24)
     transaction_filter_category.grid(row=0, column=5, sticky="ew")
 
     ttk.Label(filter_frame, text="From").grid(row=1, column=0, sticky="w", padx=(0, 6), pady=(7, 0))
@@ -232,7 +232,7 @@ def create_transactions_tab(parent):
     transaction_filter_end.grid(row=1, column=3, sticky="ew", padx=(0, 10), pady=(7, 0))
 
     ttk.Label(filter_frame, text="Search").grid(row=1, column=4, sticky="w", padx=(0, 6), pady=(7, 0))
-    transaction_filter_search = ttk.Entry(filter_frame, width=18)
+    transaction_filter_search = ttk.Entry(filter_frame, width=26)
     transaction_filter_search.grid(row=1, column=5, sticky="ew", pady=(7, 0))
 
     ttk.Label(filter_frame, text="Sort").grid(row=2, column=0, sticky="w", padx=(0, 6), pady=(7, 0))
@@ -261,7 +261,7 @@ def create_transactions_tab(parent):
     ttk.Button(buttons, text="Reset filters", command=clear_transaction_filters).pack(side="left", expand=True, fill="x", padx=(5, 0))
 
     columns = ("id", "date", "account", "category", "type", "amount", "currency", "recurring", "description")
-    transaction_table = make_table(parent, columns, 11, 5)
+    transaction_table = make_table(parent, columns, 11, 8)
     transaction_table.bind("<<TreeviewSelect>>", select_transaction)
 
     transaction_status = ttk.Label(parent, text="", foreground=STATUS_COLOR)
@@ -292,7 +292,7 @@ def create_budgets_tab(parent):
     ttk.Button(buttons, text="Delete", command=remove_budget).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Refresh", command=load_budgets).pack(side="left", expand=True, fill="x", padx=(5, 0))
 
-    budgets_table = make_table(parent, ("id", "month", "year", "category", "amount", "spent", "left", "used"), 6, 9)
+    budgets_table = make_table(parent, ("id", "month", "year", "category", "amount", "spent", "left", "used"), 6, 11)
     budgets_table.bind("<<TreeviewSelect>>", select_budget)
 
     budget_status = ttk.Label(parent, text="", foreground=STATUS_COLOR)
@@ -323,7 +323,7 @@ def create_stats_tab(parent):
     stats_limit.insert(0, "6")
 
     ttk.Label(parent, text="Type").grid(row=4, column=0, sticky="w", pady=7)
-    stats_type = ttk.Combobox(parent, values=["", "income", "expense"], state="readonly", width=26)
+    stats_type = ttk.Combobox(parent, values=["", "income", "expense"], state="readonly", width=34)
     stats_type.grid(row=4, column=1, sticky="ew", pady=7, padx=(12, 0))
 
     ttk.Button(parent, text="Load statistics", command=load_stats).grid(row=5, column=0, columnspan=2, sticky="ew", pady=(10, 12))
@@ -388,15 +388,25 @@ def make_table(parent, columns, row, height):
     table = ttk.Treeview(parent, columns=columns, show="headings", height=height)
     for column in columns:
         table.heading(column, text=column.title())
-        table.column(column, width=100, anchor="w")
-    table.column(columns[0], width=45)
+        table.column(column, width=125, anchor="w", stretch=True)
+    table.column(columns[0], width=55, stretch=False)
+    table.tag_configure("picked", background="#bfdbfe", foreground="#0f172a")
     table.grid(row=row, column=0, columnspan=2, sticky="nsew")
     return table
 
 
+def mark_selected_row(table):
+    for row_id in table.get_children():
+        table.item(row_id, tags=())
+
+    selected = table.selection()
+    if selected:
+        table.item(selected[0], tags=("picked",))
+
+
 def add_combo(parent, label, row):
     ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", pady=7)
-    combo = ttk.Combobox(parent, state="readonly", width=26)
+    combo = ttk.Combobox(parent, state="readonly", width=34)
     combo.grid(row=row, column=1, sticky="ew", pady=7, padx=(12, 0))
     parent.columnconfigure(1, weight=1)
     return combo
@@ -515,6 +525,7 @@ def select_account(event):
     selected = accounts_table.selection()
     if not selected:
         return
+    mark_selected_row(accounts_table)
     values = accounts_table.item(selected[0], "values")
     account_id = values[0]
     set_entry(account_name, values[1])
@@ -589,6 +600,7 @@ def select_category(event):
     selected = categories_table.selection()
     if not selected:
         return
+    mark_selected_row(categories_table)
     values = categories_table.item(selected[0], "values")
     category_id = values[0]
     set_entry(category_name, values[1])
@@ -764,6 +776,7 @@ def select_transaction(event):
     selected = transaction_table.selection()
     if not selected:
         return
+    mark_selected_row(transaction_table)
     values = transaction_table.item(selected[0], "values")
     transaction_id = values[0]
     transaction = transactions_cache.get(str(transaction_id))
@@ -858,6 +871,7 @@ def select_budget(event):
     selected = budgets_table.selection()
     if not selected:
         return
+    mark_selected_row(budgets_table)
     values = budgets_table.item(selected[0], "values")
     budget_id = values[0]
     set_entry(budget_month, values[1])
@@ -1031,6 +1045,7 @@ def select_admin_user(event):
     global admin_user_id
     selected = admin_users_table.selection()
     if selected:
+        mark_selected_row(admin_users_table)
         admin_user_id = admin_users_table.item(selected[0], "values")[0]
 
 
