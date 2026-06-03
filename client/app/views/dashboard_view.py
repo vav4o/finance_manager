@@ -14,6 +14,7 @@ from services.transaction_service import (
     get_category_stats,
     get_monthly_stats,
     get_transactions,
+    update_transaction,
 )
 from ui.design import STATUS_COLOR
 from ui.widgets import add_entry, add_section_title, clear_window, set_entry
@@ -27,11 +28,14 @@ admin_user_id = None
 
 accounts_cache = []
 categories_cache = []
+transactions_cache = {}
+budgets_cache = {}
 
 
 def create_dashboard_view(window, user, logout):
     clear_window(window)
-    window.geometry("980x720")
+    window.geometry("980x850")
+    window.minsize(900, 760)
 
     header = ttk.Frame(window, style="Header.TFrame", padding=(24, 16))
     header.pack(fill="x")
@@ -55,18 +59,21 @@ def create_dashboard_view(window, user, logout):
     tabs = ttk.Notebook(form)
     tabs.pack(fill="both", expand=True)
 
+    profile_tab = ttk.Frame(tabs, padding=18)
     accounts_tab = ttk.Frame(tabs, padding=18)
     categories_tab = ttk.Frame(tabs, padding=18)
     transactions_tab = ttk.Frame(tabs, padding=18)
     budgets_tab = ttk.Frame(tabs, padding=18)
     stats_tab = ttk.Frame(tabs, padding=18)
 
+    tabs.add(profile_tab, text="Profile")
     tabs.add(accounts_tab, text="Accounts")
     tabs.add(categories_tab, text="Categories")
     tabs.add(transactions_tab, text="Transactions")
     tabs.add(budgets_tab, text="Budgets")
     tabs.add(stats_tab, text="Statistics")
 
+    create_profile_tab(profile_tab, user)
     create_accounts_tab(accounts_tab)
     create_categories_tab(categories_tab)
     create_transactions_tab(transactions_tab)
@@ -91,6 +98,27 @@ def create_admin_dashboard(parent):
     create_admin_stats_tab(stats_tab)
 
 
+def create_profile_tab(parent, user):
+    add_section_title(parent, "Profile", 0)
+
+    fields = (
+        ("Username", user.get("username", "")),
+        ("Email", user.get("email", "")),
+        ("First name", user.get("first_name", "")),
+        ("Last name", user.get("last_name") or ""),
+        ("Base currency", user.get("base_currency", "EUR")),
+        ("Role", user.get("role", "")),
+    )
+
+    for row, (label, value) in enumerate(fields, start=1):
+        entry = add_entry(parent, label, row)
+        entry.insert(0, value)
+        entry.config(state="readonly")
+
+    profile_status = ttk.Label(parent, text="Profile editing needs a server update endpoint.", foreground=STATUS_COLOR)
+    profile_status.grid(row=len(fields) + 1, column=0, columnspan=2, sticky="w", pady=(14, 0))
+
+
 def create_accounts_tab(parent):
     global account_name, account_type, account_currency, account_balance, accounts_table, account_status
 
@@ -110,7 +138,8 @@ def create_accounts_tab(parent):
 
     buttons = ttk.Frame(parent)
     buttons.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(10, 12))
-    ttk.Button(buttons, text="Save", command=save_account).pack(side="left", expand=True, fill="x", padx=(0, 5))
+    ttk.Button(buttons, text="Add", command=add_account).pack(side="left", expand=True, fill="x", padx=(0, 5))
+    ttk.Button(buttons, text="Save changes", command=save_account_changes).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Clear", command=clear_account_form).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Delete", command=remove_account).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Refresh", command=load_accounts).pack(side="left", expand=True, fill="x", padx=(5, 0))
@@ -141,7 +170,7 @@ def create_categories_tab(parent, title="Categories"):
 
     buttons = ttk.Frame(parent)
     buttons.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(10, 12))
-    ttk.Button(buttons, text="Create", command=save_category).pack(side="left", expand=True, fill="x", padx=(0, 5))
+    ttk.Button(buttons, text="Add", command=save_category).pack(side="left", expand=True, fill="x", padx=(0, 5))
     ttk.Button(buttons, text="Clear", command=clear_category_form).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Delete", command=remove_category).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Refresh", command=load_categories).pack(side="left", expand=True, fill="x", padx=(5, 0))
@@ -159,7 +188,9 @@ def create_categories_tab(parent, title="Categories"):
 def create_transactions_tab(parent):
     global transaction_account, transaction_category, transaction_amount, transaction_currency
     global transaction_date, transaction_description, transaction_notes, transaction_recurring
-    global transaction_table, transaction_status, transaction_filter_type
+    global transaction_table, transaction_status, transaction_filter_type, transaction_filter_account
+    global transaction_filter_category, transaction_filter_start, transaction_filter_end, transaction_filter_search
+    global transaction_sort_by, transaction_sort_order, transaction_filter_limit
 
     add_section_title(parent, "Transactions", 0)
     transaction_account = add_combo(parent, "Account", 1)
@@ -177,19 +208,60 @@ def create_transactions_tab(parent):
         row=8, column=1, sticky="w", pady=7, padx=(12, 0)
     )
 
-    ttk.Label(parent, text="Filter").grid(row=9, column=0, sticky="w", pady=7)
-    transaction_filter_type = ttk.Combobox(parent, values=["", "income", "expense"], state="readonly", width=26)
-    transaction_filter_type.grid(row=9, column=1, sticky="ew", pady=7, padx=(12, 0))
+    filter_frame = ttk.Frame(parent)
+    filter_frame.grid(row=9, column=0, columnspan=2, sticky="ew", pady=(6, 2))
+
+    ttk.Label(filter_frame, text="Type").grid(row=0, column=0, sticky="w", padx=(0, 6))
+    transaction_filter_type = ttk.Combobox(filter_frame, values=["", "income", "expense"], state="readonly", width=10)
+    transaction_filter_type.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+
+    ttk.Label(filter_frame, text="Account").grid(row=0, column=2, sticky="w", padx=(0, 6))
+    transaction_filter_account = ttk.Combobox(filter_frame, state="readonly", width=18)
+    transaction_filter_account.grid(row=0, column=3, sticky="ew", padx=(0, 10))
+
+    ttk.Label(filter_frame, text="Category").grid(row=0, column=4, sticky="w", padx=(0, 6))
+    transaction_filter_category = ttk.Combobox(filter_frame, state="readonly", width=18)
+    transaction_filter_category.grid(row=0, column=5, sticky="ew")
+
+    ttk.Label(filter_frame, text="From").grid(row=1, column=0, sticky="w", padx=(0, 6), pady=(7, 0))
+    transaction_filter_start = ttk.Entry(filter_frame, width=12)
+    transaction_filter_start.grid(row=1, column=1, sticky="ew", padx=(0, 10), pady=(7, 0))
+
+    ttk.Label(filter_frame, text="To").grid(row=1, column=2, sticky="w", padx=(0, 6), pady=(7, 0))
+    transaction_filter_end = ttk.Entry(filter_frame, width=12)
+    transaction_filter_end.grid(row=1, column=3, sticky="ew", padx=(0, 10), pady=(7, 0))
+
+    ttk.Label(filter_frame, text="Search").grid(row=1, column=4, sticky="w", padx=(0, 6), pady=(7, 0))
+    transaction_filter_search = ttk.Entry(filter_frame, width=18)
+    transaction_filter_search.grid(row=1, column=5, sticky="ew", pady=(7, 0))
+
+    ttk.Label(filter_frame, text="Sort").grid(row=2, column=0, sticky="w", padx=(0, 6), pady=(7, 0))
+    transaction_sort_by = ttk.Combobox(filter_frame, values=["date", "amount"], state="readonly", width=10)
+    transaction_sort_by.grid(row=2, column=1, sticky="ew", padx=(0, 10), pady=(7, 0))
+    transaction_sort_by.set("date")
+
+    transaction_sort_order = ttk.Combobox(filter_frame, values=["desc", "asc"], state="readonly", width=10)
+    transaction_sort_order.grid(row=2, column=3, sticky="ew", padx=(0, 10), pady=(7, 0))
+    transaction_sort_order.set("desc")
+
+    ttk.Label(filter_frame, text="Limit").grid(row=2, column=4, sticky="w", padx=(0, 6), pady=(7, 0))
+    transaction_filter_limit = ttk.Entry(filter_frame, width=8)
+    transaction_filter_limit.grid(row=2, column=5, sticky="w", pady=(7, 0))
+    transaction_filter_limit.insert(0, "50")
+
+    filter_frame.columnconfigure(5, weight=1)
 
     buttons = ttk.Frame(parent)
     buttons.grid(row=10, column=0, columnspan=2, sticky="ew", pady=(10, 12))
-    ttk.Button(buttons, text="Save", command=save_transaction).pack(side="left", expand=True, fill="x", padx=(0, 5))
+    ttk.Button(buttons, text="Add", command=add_transaction).pack(side="left", expand=True, fill="x", padx=(0, 5))
+    ttk.Button(buttons, text="Save changes", command=save_transaction_changes).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Clear", command=clear_transaction_form).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Delete", command=remove_transaction).pack(side="left", expand=True, fill="x", padx=5)
-    ttk.Button(buttons, text="Refresh", command=load_transactions).pack(side="left", expand=True, fill="x", padx=(5, 0))
+    ttk.Button(buttons, text="Apply filters", command=load_transactions).pack(side="left", expand=True, fill="x", padx=5)
+    ttk.Button(buttons, text="Reset filters", command=clear_transaction_filters).pack(side="left", expand=True, fill="x", padx=(5, 0))
 
     columns = ("id", "date", "account", "category", "type", "amount", "currency", "recurring", "description")
-    transaction_table = make_table(parent, columns, 11, 8)
+    transaction_table = make_table(parent, columns, 11, 5)
     transaction_table.bind("<<TreeviewSelect>>", select_transaction)
 
     transaction_status = ttk.Label(parent, text="", foreground=STATUS_COLOR)
@@ -202,6 +274,7 @@ def create_transactions_tab(parent):
 
 def create_budgets_tab(parent):
     global budget_month, budget_year, budget_category, budget_amount, budgets_table, budget_status
+    global budget_progress, budget_progress_label
 
     add_section_title(parent, "Budgets", 0)
     today = dt.date.today()
@@ -219,11 +292,18 @@ def create_budgets_tab(parent):
     ttk.Button(buttons, text="Delete", command=remove_budget).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Refresh", command=load_budgets).pack(side="left", expand=True, fill="x", padx=(5, 0))
 
-    budgets_table = make_table(parent, ("id", "month", "year", "category", "amount", "spent", "left"), 6, 10)
+    budgets_table = make_table(parent, ("id", "month", "year", "category", "amount", "spent", "left", "used"), 6, 9)
     budgets_table.bind("<<TreeviewSelect>>", select_budget)
 
     budget_status = ttk.Label(parent, text="", foreground=STATUS_COLOR)
     budget_status.grid(row=7, column=0, columnspan=2, sticky="w", pady=(10, 0))
+
+    budget_progress = ttk.Progressbar(parent, maximum=100, mode="determinate")
+    budget_progress.grid(row=8, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+
+    budget_progress_label = ttk.Label(parent, text="Select a budget to see progress.")
+    budget_progress_label.grid(row=9, column=0, columnspan=2, sticky="w", pady=(6, 0))
+
     parent.rowconfigure(6, weight=1)
     parent.columnconfigure(1, weight=1)
     refresh_account_category_choices()
@@ -351,6 +431,8 @@ def refresh_account_category_choices():
     for combo_name, values in (
         ("transaction_account", account_values),
         ("transaction_category", category_values),
+        ("transaction_filter_account", [""] + account_values),
+        ("transaction_filter_category", [""] + category_values),
         ("budget_category", budget_values),
     ):
         combo = globals().get(combo_name)
@@ -372,29 +454,60 @@ def load_accounts():
         account_status.config(text=str(exc))
 
 
-def save_account():
-    global account_id
+def add_account():
     try:
-        name = account_name.get().strip()
-        currency = account_currency.get().strip().upper()
-        data = {"name": name, "type": account_type.get(), "currency": currency, "balance": float(account_balance.get())}
-        if not name:
-            account_status.config(text="Please enter account name.")
+        data = account_payload()
+        if account_exists(data["name"]):
+            account_status.config(text="This account already exists.")
             return
-        if len(name) > 50:
-            account_status.config(text="Account name must be 50 characters or fewer.")
-            return
-        if len(currency) != 3 or not currency.isalpha():
-            account_status.config(text="Currency must be a 3-letter code.")
-            return
-        update_account(account_id, data) if account_id else create_account(data)
-        account_status.config(text="Account saved.")
+
+        create_account(data)
+        account_status.config(text="Account added.")
         clear_account_form()
         load_accounts()
     except ValueError:
         account_status.config(text="Balance must be a number.")
     except Exception as exc:
         account_status.config(text=str(exc))
+
+
+def save_account_changes():
+    if not account_id:
+        account_status.config(text="Select an account first.")
+        return
+
+    try:
+        update_account(account_id, account_payload())
+        account_status.config(text="Account updated.")
+        clear_account_form()
+        load_accounts()
+    except ValueError:
+        account_status.config(text="Balance must be a number.")
+    except Exception as exc:
+        account_status.config(text=str(exc))
+
+
+def account_payload():
+    name = account_name.get().strip()
+    currency = account_currency.get().strip().upper()
+
+    if not name:
+        raise Exception("Please enter account name.")
+    if len(name) > 50:
+        raise Exception("Account name must be 50 characters or fewer.")
+    if len(currency) != 3 or not currency.isalpha():
+        raise Exception("Currency must be a 3-letter code.")
+
+    return {"name": name, "type": account_type.get(), "currency": currency, "balance": float(account_balance.get())}
+
+
+def account_exists(name):
+    name = name.lower()
+    for row_id in accounts_table.get_children():
+        values = accounts_table.item(row_id, "values")
+        if values[1].lower() == name:
+            return True
+    return False
 
 
 def select_account(event):
@@ -446,9 +559,10 @@ def load_categories():
 
 def save_category():
     name = category_name.get().strip()
+    category_kind = category_type.get()
     data = {
         "name": name,
-        "type": category_type.get(),
+        "type": category_kind,
         "color": category_color.get().strip() or None,
         "icon": None,
     }
@@ -457,6 +571,9 @@ def save_category():
         return
     if len(name) > 50:
         category_status.config(text="Category name must be 50 characters or fewer.")
+        return
+    if category_exists(name, category_kind):
+        category_status.config(text="This category already exists.")
         return
     try:
         create_category(data)
@@ -500,11 +617,24 @@ def clear_category_form():
     set_entry(category_color, "#2563eb")
 
 
+def category_exists(name, category_kind):
+    name = name.lower()
+    for row_id in categories_table.get_children():
+        values = categories_table.item(row_id, "values")
+        if values[1].lower() == name and values[2] == category_kind:
+            return True
+    return False
+
+
 def load_transactions():
+    global transactions_cache
+
+    transactions_cache = {}
     transaction_table.delete(*transaction_table.get_children())
     try:
-        filters = {"limit": 50, "transaction_type": transaction_filter_type.get()}
+        filters = transaction_filters()
         for transaction in get_transactions(filters):
+            transactions_cache[str(transaction["id"])] = transaction
             account = transaction.get("account") or {}
             category = transaction.get("category") or {}
             transaction_table.insert("", tk.END, values=(
@@ -523,11 +653,52 @@ def load_transactions():
         transaction_status.config(text=str(exc))
 
 
-def save_transaction(ignore_budget_limit=False):
+def transaction_filters():
+    return {
+        "limit": int(transaction_filter_limit.get() or 50),
+        "transaction_type": transaction_filter_type.get(),
+        "account_id": selected_id(transaction_filter_account),
+        "category_id": selected_id(transaction_filter_category),
+        "start_date": format_filter_date(transaction_filter_start.get(), False),
+        "end_date": format_filter_date(transaction_filter_end.get(), True),
+        "search": transaction_filter_search.get().strip(),
+        "sort_by": transaction_sort_by.get() or "date",
+        "sort_order": transaction_sort_order.get() or "desc",
+    }
+
+
+def format_filter_date(value, end_of_day):
+    value = value.strip()
+    if not value:
+        return None
+    try:
+        dt.datetime.fromisoformat(value)
+    except ValueError:
+        dt.datetime.fromisoformat(f"{value}T00:00:00")
+    if "T" in value:
+        return value
+    suffix = "T23:59:59" if end_of_day else "T00:00:00"
+    return f"{value}{suffix}"
+
+
+def clear_transaction_filters():
+    transaction_filter_type.set("")
+    transaction_filter_account.set("")
+    transaction_filter_category.set("")
+    set_entry(transaction_filter_start, "")
+    set_entry(transaction_filter_end, "")
+    set_entry(transaction_filter_search, "")
+    transaction_sort_by.set("date")
+    transaction_sort_order.set("desc")
+    set_entry(transaction_filter_limit, "50")
+    load_transactions()
+
+
+def add_transaction(ignore_budget_limit=False):
     try:
         data = transaction_payload()
         create_transaction(data, ignore_budget_limit=ignore_budget_limit)
-        transaction_status.config(text="Transaction saved.")
+        transaction_status.config(text="Transaction added.")
         clear_transaction_form()
         load_accounts()
         load_transactions()
@@ -535,11 +706,28 @@ def save_transaction(ignore_budget_limit=False):
         if exc.status == 409:
             confirmed = messagebox.askyesno("Budget exceeded", f"{exc}\n\nSave anyway?")
             if confirmed:
-                save_transaction(ignore_budget_limit=True)
+                add_transaction(ignore_budget_limit=True)
             else:
                 transaction_status.config(text="Transaction not saved.")
         else:
             transaction_status.config(text=str(exc))
+    except ValueError as exc:
+        transaction_status.config(text=str(exc))
+    except Exception as exc:
+        transaction_status.config(text=str(exc))
+
+
+def save_transaction_changes():
+    if not transaction_id:
+        transaction_status.config(text="Select a transaction first.")
+        return
+
+    try:
+        update_transaction(transaction_id, transaction_payload())
+        transaction_status.config(text="Transaction updated.")
+        clear_transaction_form()
+        load_accounts()
+        load_transactions()
     except ValueError as exc:
         transaction_status.config(text=str(exc))
     except Exception as exc:
@@ -578,6 +766,19 @@ def select_transaction(event):
         return
     values = transaction_table.item(selected[0], "values")
     transaction_id = values[0]
+    transaction = transactions_cache.get(str(transaction_id))
+
+    if transaction:
+        transaction_account.set(find_account_choice(transaction["account_id"]))
+        transaction_category.set(find_category_choice_by_id(transaction["category_id"]))
+        set_entry(transaction_date, str(transaction.get("date", ""))[:10])
+        set_entry(transaction_amount, transaction["amount"])
+        set_entry(transaction_currency, transaction["currency"])
+        transaction_recurring.set(bool(transaction.get("is_recurring")))
+        set_entry(transaction_description, transaction["description"])
+        set_entry(transaction_notes, transaction.get("notes") or "")
+        return
+
     set_entry(transaction_date, values[1])
     set_entry(transaction_amount, values[5])
     set_entry(transaction_currency, values[6])
@@ -611,19 +812,25 @@ def clear_transaction_form():
 
 
 def load_budgets():
+    global budgets_cache
+
+    budgets_cache = {}
     budgets_table.delete(*budgets_table.get_children())
     try:
         month = int(budget_month.get())
         year = int(budget_year.get())
         for budget in get_budgets(month, year):
+            budgets_cache[str(budget["id"])] = budget
             category = budget.get("category") or {}
             amount = float(budget["amount"])
             spent = float(budget.get("spent_amount") or 0)
+            used_percent = budget_used_percent(spent, amount)
             budgets_table.insert("", tk.END, values=(
                 budget["id"], budget["month"], budget["year"], category.get("name", "Overall"),
-                amount, spent, amount - spent
+                amount, spent, amount - spent, f"{used_percent:.0f}%"
             ))
         refresh_account_category_choices()
+        clear_budget_progress()
     except Exception as exc:
         budget_status.config(text=str(exc))
 
@@ -657,6 +864,7 @@ def select_budget(event):
     set_entry(budget_year, values[2])
     budget_category.set("Overall budget" if values[3] == "Overall" else find_category_choice(values[3]))
     set_entry(budget_amount, values[4])
+    show_budget_progress(values)
 
 
 def remove_budget():
@@ -681,11 +889,59 @@ def clear_budget_form():
     if budget_category["values"]:
         budget_category.set(budget_category["values"][0])
     set_entry(budget_amount, "")
+    clear_budget_progress()
+
+
+def budget_used_percent(spent, amount):
+    if amount <= 0:
+        return 0
+    return (spent / amount) * 100
+
+
+def show_budget_progress(values):
+    amount = float(values[4])
+    spent = float(values[5])
+    remaining = float(values[6])
+    percent = budget_used_percent(spent, amount)
+    budget_progress["value"] = min(percent, 100)
+
+    state = "OK"
+    color = "#16a34a"
+    if percent >= 100:
+        state = "Exceeded"
+        color = "#dc2626"
+    elif percent >= 80:
+        state = "Near limit"
+        color = "#f59e0b"
+
+    budget_progress_label.config(
+        text=f"{state}: {spent:.2f} / {amount:.2f} used ({percent:.0f}%), remaining {remaining:.2f}",
+        foreground=color,
+    )
+
+
+def clear_budget_progress():
+    budget_progress["value"] = 0
+    budget_progress_label.config(text="Select a budget to see progress.", foreground=STATUS_COLOR)
 
 
 def find_category_choice(name):
     for category in categories_cache:
         if category["name"] == name:
+            return choice_label(category, True)
+    return ""
+
+
+def find_account_choice(account_id):
+    for account in accounts_cache:
+        if account["id"] == account_id:
+            return choice_label(account)
+    return ""
+
+
+def find_category_choice_by_id(category_id):
+    for category in categories_cache:
+        if category["id"] == category_id:
             return choice_label(category, True)
     return ""
 

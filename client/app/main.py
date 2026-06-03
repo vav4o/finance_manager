@@ -9,7 +9,8 @@ from views.dashboard_view import create_dashboard_view
 window = tk.Tk()
 window.title("Personal Finance Manager")
 window.geometry("500x650")
-window.resizable(False, False)
+window.minsize(500, 650)
+window.resizable(True, True)
 
 apply_design(window)
 

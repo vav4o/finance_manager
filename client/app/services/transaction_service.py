@@ -1,6 +1,6 @@
 from urllib import parse
 
-from services.api import auth_headers, delete_request, post_json, send_request
+from services.api import auth_headers, delete_request, post_json, put_json, send_request
 from services.auth_service import get_token
 
 
@@ -23,6 +23,10 @@ def create_transaction(data, ignore_budget_limit=False):
     if ignore_budget_limit:
         path = f"{path}?ignore_budget_limit=true"
     return post_json(path, data, headers=auth_headers(get_token()))
+
+
+def update_transaction(transaction_id, data):
+    return put_json(f"/transactions/{transaction_id}", data, headers=auth_headers(get_token()))
 
 
 def delete_transaction(transaction_id):
