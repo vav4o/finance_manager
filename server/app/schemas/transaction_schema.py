@@ -31,7 +31,7 @@ class TransactionResponse(TransactionBase):
         
 class CategoryStatResponse(BaseModel):
     category_name: str
-    icon_color: Optional[str] = None
+    color: Optional[str] = None
     total_amount: float
     type: CategoryType
 

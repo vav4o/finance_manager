@@ -251,7 +251,7 @@ def load_categories():
                 category["id"],
                 category["name"],
                 category["type"],
-                category["icon_color"] or "",
+                category["color"] or "",
             )
             categories_table.insert("", tk.END, values=values)
     except Exception as exc:
@@ -263,7 +263,7 @@ def save_category():
     data = {
         "name": name,
         "type": category_type.get(),
-        "icon_color": category_color.get().strip() or None,
+        "color": category_color.get().strip() or None,
     }
 
     if not name:

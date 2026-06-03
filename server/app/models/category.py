@@ -15,6 +15,7 @@ class Category(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     name = Column(String, nullable=False)
     type = Column(Enum(CategoryType), nullable=False)
-    icon_color = Column(String, nullable=True)
+    color = Column(String, nullable=True)
+    icon = Column(String, nullable=True)
 
     user = relationship("User")

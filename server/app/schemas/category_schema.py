@@ -5,7 +5,8 @@ from server.app.models.category import CategoryType
 class CategoryBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     type: CategoryType
-    icon_color: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = Field(None)
 
 class CategoryCreate(CategoryBase):
     pass

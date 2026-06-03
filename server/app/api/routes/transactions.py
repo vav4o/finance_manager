@@ -43,7 +43,7 @@ def get_transaction_statistics(
 
     query = db.query(
         Category.name.label("category_name"),
-        Category.icon_color.label("icon_color"),
+        Category.color.label("color"),
         Category.type.label("type"),
         func.sum(Transaction.amount).label("total_amount")
     ).join(

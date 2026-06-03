@@ -26,7 +26,8 @@ def create_category(category_in: CategoryCreate, current_user: User = Depends(ge
         user_id=user_id,
         name=category_in.name,
         type=category_in.type,
-        icon_color=category_in.icon_color
+        color=category_in.color,
+        icon=category_in.icon
     )
     db.add(db_category)
     db.commit()
