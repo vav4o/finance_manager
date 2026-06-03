@@ -75,3 +75,67 @@ def get_budgets(month: int, year: int, current_user: User = Depends(get_current_
         budget.spent_amount = spent if spent else 0.0
 
     return budgets
+
+@router.put("/{budget_id}", response_model=BudgetResponse)
+def update_budget(
+    budget_id: int, 
+    budget_in: BudgetCreate, 
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """
+    Едит a бъджет
+    """
+    db_budget = db.query(Budget).filter(Budget.id == budget_id).first()
+    if not db_budget:
+        raise HTTPException(status_code=404, detail="Budget not found.")
+        
+    if db_budget.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have access to this budget.")
+
+    existing = db.query(Budget).filter(
+        Budget.user_id == current_user.id,
+        Budget.category_id == budget_in.category_id,
+        Budget.month == budget_in.month,
+        Budget.year == budget_in.year,
+        Budget.id != budget_id
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=400, 
+            detail="You already have another budget set for this category in this period."
+        )
+
+    db_budget.category_id = budget_in.category_id
+    db_budget.amount = budget_in.amount
+    db_budget.month = budget_in.month
+    db_budget.year = budget_in.year
+
+    db.commit()
+    db.refresh(db_budget)
+    
+    db_budget.spent_amount = 0.0 
+    
+    return db_budget
+
+
+@router.delete("/{budget_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_budget(
+    budget_id: int, 
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a budget.
+    """
+    db_budget = db.query(Budget).filter(Budget.id == budget_id).first()
+    if not db_budget:
+        raise HTTPException(status_code=404, detail="Budget not found.")
+
+    if db_budget.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have access to this budget.")
+
+    db.delete(db_budget)
+    db.commit()
+    return None
