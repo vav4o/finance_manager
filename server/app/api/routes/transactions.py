@@ -14,6 +14,7 @@ from server.app.schemas.transaction_schema import TransactionCreate, Transaction
 from server.app.api.dependencies import get_current_user
 from server.app.models.user import User
 from server.app.models.budget import Budget
+from server.app.core.services import add_months
 
 
 router = APIRouter(
@@ -170,6 +171,10 @@ def create_transaction(transaction_in: TransactionCreate, ignore_budget_limit: b
         notes=transaction_in.notes,
         is_recurring=transaction_in.is_recurring
     )
+
+    if transaction_in.is_recurring:
+        base_date = transaction_in.date or datetime.utcnow()
+        db_transaction.next_recurring_date = add_months(base_date, 1)
     
     db.add(db_transaction)
     
@@ -338,6 +343,7 @@ def update_transaction(
     db_transaction.description = transaction_in.description
     db_transaction.notes = transaction_in.notes
     db_transaction.is_recurring = transaction_in.is_recurring
+    db_transaction.next_recurring_date = add_months(transaction_in.date or db_transaction.date, 1) if transaction_in.is_recurring else None
 
     db.commit()
     db.refresh(db_transaction)

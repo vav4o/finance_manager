@@ -17,6 +17,7 @@ class Transaction(Base):
     description = Column(String, nullable=False)
     notes = Column(String, nullable=True)
     is_recurring = Column(Boolean, default=False)
+    next_recurring_date = Column(DateTime, nullable=True)
 
     user = relationship("User")
     account = relationship("Account")

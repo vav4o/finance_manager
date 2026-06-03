@@ -7,6 +7,7 @@ from server.app.models.user import User
 from server.app.schemas.user_schema import UserCreate, UserResponse
 from server.app.core.security import hash_password, verify_password, create_access_token
 from server.app.api.dependencies import get_current_user
+from server.app.core.services import check_and_process_recurring
 
 router = APIRouter(
     prefix="/users",
@@ -64,6 +65,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    check_and_process_recurring(user_id=user.id, db=db)
+    
     access_token = create_access_token(data={"sub": str(user.id)})
 
     return {"access_token": access_token, "token_type": "bearer"}
