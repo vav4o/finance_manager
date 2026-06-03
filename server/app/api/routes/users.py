@@ -20,11 +20,18 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
     Register a new user.
     """
 
-    existing_user = db.query(User).filter(User.email == user_in.email).first()
-    if existing_user:
+    existing_email_user = db.query(User).filter(User.email == user_in.email).first()
+    if existing_email_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User with this email already exists."
+        )
+
+    existing_username_user = db.query(User).filter(User.username == user_in.username).first()
+    if existing_username_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this username already exists."
         )
 
     hashed_pwd = hash_password(user_in.password)
