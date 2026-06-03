@@ -103,7 +103,7 @@ def create_accounts_tab(parent):
     account_type.set("cash")
 
     account_currency = add_entry(parent, "Currency", 3)
-    account_currency.insert(0, "BGN")
+    account_currency.insert(0, "EUR")
 
     account_balance = add_entry(parent, "Balance", 4)
     account_balance.insert(0, "0")
@@ -166,7 +166,7 @@ def create_transactions_tab(parent):
     transaction_category = add_combo(parent, "Category", 2)
     transaction_amount = add_entry(parent, "Amount", 3)
     transaction_currency = add_entry(parent, "Currency", 4)
-    transaction_currency.insert(0, "BGN")
+    transaction_currency.insert(0, "EUR")
     transaction_date = add_entry(parent, "Date", 5)
     transaction_date.insert(0, dt.date.today().isoformat())
     transaction_description = add_entry(parent, "Description", 6)
@@ -428,7 +428,7 @@ def clear_account_form():
     account_id = None
     set_entry(account_name, "")
     account_type.set("cash")
-    set_entry(account_currency, "BGN")
+    set_entry(account_currency, "EUR")
     set_entry(account_balance, "0")
 
 
@@ -603,7 +603,7 @@ def clear_transaction_form():
     global transaction_id
     transaction_id = None
     set_entry(transaction_amount, "")
-    set_entry(transaction_currency, "BGN")
+    set_entry(transaction_currency, "EUR")
     set_entry(transaction_date, dt.date.today().isoformat())
     set_entry(transaction_description, "")
     set_entry(transaction_notes, "")

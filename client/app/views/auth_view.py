@@ -41,7 +41,7 @@ def create_auth_view(window, after_login):
     register_first_name = add_entry(register_tab, "First name", 4)
     register_last_name = add_entry(register_tab, "Last name", 5)
     register_currency = add_entry(register_tab, "Base currency", 6)
-    register_currency.insert(0, "BGN")
+    register_currency.insert(0, "EUR")
     register_status = ttk.Label(register_tab, text="", foreground=STATUS_COLOR)
 
     def login_with(username, password):
