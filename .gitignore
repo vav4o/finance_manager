@@ -21,3 +21,4 @@ server/app/schemas/__pycache__/transaction_schema.cpython-312.pyc
 server/app/models/__pycache__/budget.cpython-312.pyc
 server/app/api/routes/__pycache__/budgets.cpython-312.pyc
 server/app/schemas/__pycache__/budget_schema.cpython-312.pyc
+server/app/api/routes/__pycache__/admin.cpython-312.pyc
