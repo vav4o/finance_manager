@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, desc, asc
+from sqlalchemy import func
 from typing import cast, List, Optional
 from datetime import datetime
+import calendar
 
 from server.app.db.database import get_db
 from server.app.models.transaction import Transaction
@@ -11,6 +13,7 @@ from server.app.models.category import Category, CategoryType
 from server.app.schemas.transaction_schema import TransactionCreate, TransactionResponse
 from server.app.api.dependencies import get_current_user
 from server.app.models.user import User
+from server.app.models.budget import Budget
 
 router = APIRouter(
     prefix="/transactions",
@@ -18,7 +21,7 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
-def create_transaction(transaction_in: TransactionCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_transaction(transaction_in: TransactionCreate, ignore_budget_limit: bool = Query(False),current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Create a new transaction
     """
@@ -36,6 +39,47 @@ def create_transaction(transaction_in: TransactionCreate, current_user: User = D
     
     if not category:
         raise HTTPException(status_code=404, detail="Category not found.")
+
+
+
+    if category.type == CategoryType.EXPENSE and not ignore_budget_limit:
+        t_month = transaction_in.date.month if transaction_in.date else datetime.utcnow().month
+        t_year = transaction_in.date.year if transaction_in.date else datetime.utcnow().year
+
+        budget = db.query(Budget).filter(
+            Budget.user_id == current_user.id,
+            Budget.month == t_month,
+            Budget.year == t_year,
+            or_(Budget.category_id == transaction_in.category_id, Budget.category_id == None)
+        ).first()
+
+        if budget:
+            _, last_day = calendar.monthrange(t_year, t_month)
+            start_date = datetime(t_year, t_month, 1)
+            end_date = datetime(t_year, t_month, last_day, 23, 59, 59)
+            
+            spent_query = db.query(func.sum(Transaction.amount)).join(Category).filter(
+                Transaction.user_id == current_user.id,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date,
+                Category.type == CategoryType.EXPENSE
+            )
+            if budget.category_id:
+                spent_query = spent_query.filter(Transaction.category_id == budget.category_id)
+                
+            total_spent = spent_query.scalar() or 0.0
+            
+            if total_spent + transaction_in.amount > budget.amount:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "error_code": "BUDGET_EXCEEDED",
+                        "message": f"This transaction will exceed your monthly budget of {budget.amount} {account.currency}. Are you sure you want to save it?",
+                        "current_spent": total_spent,
+                        "budget_amount": budget.amount
+                    }
+                )
+
 
     db_transaction = Transaction(
         user_id=current_user.id,

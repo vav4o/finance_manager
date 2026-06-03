@@ -22,6 +22,7 @@ class TransactionResponse(TransactionBase):
     user_id: int
     account: Optional[AccountResponse] = None
     category: Optional[CategoryResponse] = None
+    warning: Optional[str] = None
 
     class Config:
         from_attributes = True
