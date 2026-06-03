@@ -6,6 +6,13 @@ from urllib import error, parse, request
 API_URL = os.getenv("FINANCE_API_URL", "http://127.0.0.1:8000")
 
 
+class ApiError(Exception):
+    def __init__(self, message, status=None, detail=None):
+        super().__init__(message)
+        self.status = status
+        self.detail = detail
+
+
 def send_request(path, body=None, headers=None):
     url = f"{API_URL}{path}"
     api_request = request.Request(url, data=body, headers=headers or {})
@@ -14,7 +21,7 @@ def send_request(path, body=None, headers=None):
         with request.urlopen(api_request, timeout=8) as response:
             return json.loads(response.read().decode("utf-8"))
     except error.HTTPError as exc:
-        raise Exception(read_error(exc))
+        raise read_api_error(exc)
     except error.URLError:
         raise Exception("Cannot connect to the server.")
 
@@ -42,7 +49,7 @@ def put_json(path, data, headers=None):
         with request.urlopen(api_request, timeout=8) as response:
             return json.loads(response.read().decode("utf-8"))
     except error.HTTPError as exc:
-        raise Exception(read_error(exc))
+        raise read_api_error(exc)
     except error.URLError:
         raise Exception("Cannot connect to the server.")
 
@@ -55,7 +62,7 @@ def delete_request(path, headers=None):
         with request.urlopen(api_request, timeout=8):
             return True
     except error.HTTPError as exc:
-        raise Exception(read_error(exc))
+        raise read_api_error(exc)
     except error.URLError:
         raise Exception("Cannot connect to the server.")
 
@@ -67,17 +74,26 @@ def post_form(path, data):
 
 
 def read_error(exc):
+    api_error = read_api_error(exc)
+    return str(api_error)
+
+
+def read_api_error(exc):
     try:
         data = json.loads(exc.read().decode("utf-8"))
     except Exception:
-        return "Something went wrong."
+        return ApiError("Something went wrong.", status=getattr(exc, "code", None))
 
     detail = data.get("detail", "Something went wrong.")
+    message = detail
+
     if isinstance(detail, list):
         messages = []
         for item in detail:
             location = " ".join(str(part) for part in item.get("loc", []))
             messages.append(f"{location}: {item.get('msg')}")
-        return "\n".join(messages)
+        message = "\n".join(messages)
+    elif isinstance(detail, dict):
+        message = detail.get("message") or detail.get("description") or str(detail)
 
-    return str(detail)
+    return ApiError(str(message), status=getattr(exc, "code", None), detail=detail)

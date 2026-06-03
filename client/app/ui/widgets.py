@@ -16,6 +16,11 @@ def add_entry(parent, label, row, show=None):
     return entry
 
 
+def set_entry(entry, value):
+    entry.delete(0, "end")
+    entry.insert(0, value)
+
+
 def add_section_title(parent, text, row):
     title = ttk.Label(parent, text=text, style="Section.TLabel")
     title.grid(row=row, column=0, columnspan=2, sticky="w", pady=(0, 12))

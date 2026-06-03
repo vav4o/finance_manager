@@ -4,7 +4,7 @@ import re
 
 from services.auth_service import login_user, register_user
 from ui.design import STATUS_COLOR
-from ui.widgets import add_entry, clear_window
+from ui.widgets import add_entry, clear_window, set_entry
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -44,10 +44,7 @@ def create_auth_view(window, after_login):
     register_currency.insert(0, "BGN")
     register_status = ttk.Label(register_tab, text="", foreground=STATUS_COLOR)
 
-    def login():
-        username = login_username.get().strip()
-        password = login_password.get()
-
+    def login_with(username, password):
         if not username or not password:
             login_status.config(text="Please enter username and password.")
             return
@@ -58,6 +55,9 @@ def create_auth_view(window, after_login):
             after_login(user)
         except Exception as exc:
             login_status.config(text=str(exc))
+
+    def login():
+        login_with(login_username.get().strip(), login_password.get())
 
     def register():
         password = register_password.get()
@@ -115,8 +115,7 @@ def create_auth_view(window, after_login):
             register_status.config(text="Account created. You can login now.")
             tabs.select(login_tab)
 
-            login_username.delete(0, tk.END)
-            login_username.insert(0, data["username"])
+            set_entry(login_username, data["username"])
         except Exception as exc:
             register_status.config(text=str(exc))
 
