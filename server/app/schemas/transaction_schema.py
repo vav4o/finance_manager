@@ -10,7 +10,7 @@ class TransactionBase(BaseModel):
     account_id: int
     category_id: int
     amount: float = Field(..., gt=0, description="Amount must be greater than zero")
-    currency: str = Field(default="BGN", min_length=3, max_length=3)
+    currency: str = Field(default="EUR", min_length=3, max_length=3)
     date: Optional[datetime] = Field(default_factory=datetime.utcnow)
     description: str = Field(..., min_length=1, max_length=255)
     notes: Optional[str] = None

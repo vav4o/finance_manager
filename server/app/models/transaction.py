@@ -12,7 +12,7 @@ class Transaction(Base):
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     
     amount = Column(Float, nullable=False)
-    currency = Column(String, default="BGN")
+    currency = Column(String, default="EUR")
     date = Column(DateTime, default=datetime.utcnow, nullable=False)
     description = Column(String, nullable=False)
     notes = Column(String, nullable=True)

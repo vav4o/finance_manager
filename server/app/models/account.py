@@ -16,7 +16,7 @@ class Account(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)
     type = Column(Enum(AccountType), default=AccountType.CASH)
-    currency = Column(String, default="BGN")
+    currency = Column(String, default="EUR")
     balance = Column(Float, default=0.0)
 
     user = relationship("User")

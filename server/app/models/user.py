@@ -15,6 +15,6 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=True)
-    base_currency = Column(String, default="BGN")
+    base_currency = Column(String, default="EUR")
     role = Column(Enum(UserRole), default=UserRole.USER)
     is_blocked = Column(Boolean, default=False)
