@@ -1,8 +1,16 @@
 import calendar
 import ctypes
 import datetime as dt
+import io
 import tkinter as tk
 from tkinter import messagebox, ttk
+from urllib import request
+
+try:
+    from PIL import Image, ImageTk
+except ImportError:
+    Image = None
+    ImageTk = None
 
 from services.account_service import create_account, delete_account, get_accounts, update_account
 from services.admin_service import get_system_statistics, get_users, toggle_user_block
@@ -32,6 +40,7 @@ accounts_cache = []
 categories_cache = []
 transactions_cache = {}
 budgets_cache = {}
+profile_avatar_image = None
 
 
 def create_dashboard_view(window, user, logout):
@@ -101,9 +110,16 @@ def create_admin_dashboard(parent):
 
 
 def create_profile_tab(parent, user):
-    global profile_first_name, profile_last_name, profile_currency, profile_avatar, profile_status
+    global profile_first_name, profile_last_name, profile_currency, profile_avatar
+    global profile_status, profile_avatar_preview
 
     add_section_title(parent, "Profile", 0)
+
+    avatar_box = ttk.Frame(parent)
+    avatar_box.grid(row=1, column=2, rowspan=8, sticky="n", padx=(28, 0))
+
+    profile_avatar_preview = ttk.Label(avatar_box, text="No avatar", width=22, anchor="center")
+    profile_avatar_preview.pack(pady=(4, 10))
 
     readonly_fields = (
         ("Username", user.get("username", "")),
@@ -136,6 +152,7 @@ def create_profile_tab(parent, user):
     profile_status.grid(row=9, column=0, columnspan=2, sticky="w", pady=(14, 0))
 
     parent.columnconfigure(1, weight=1)
+    load_avatar_preview(user.get("avatar") or "")
 
 
 def create_accounts_tab(parent):
@@ -477,9 +494,35 @@ def save_profile():
 
     try:
         update_current_user(data)
+        load_avatar_preview(avatar)
         profile_status.config(text="Profile updated.")
     except Exception as exc:
         profile_status.config(text=str(exc))
+
+
+def load_avatar_preview(avatar_url):
+    global profile_avatar_image
+
+    if not avatar_url:
+        profile_avatar_image = None
+        profile_avatar_preview.config(image="", text="No avatar")
+        return
+
+    if Image is None or ImageTk is None:
+        profile_avatar_preview.config(image="", text="Install Pillow\nto show avatar")
+        return
+
+    try:
+        with request.urlopen(avatar_url, timeout=5) as response:
+            image_data = response.read()
+
+        image = Image.open(io.BytesIO(image_data))
+        image.thumbnail((140, 140))
+        profile_avatar_image = ImageTk.PhotoImage(image)
+        profile_avatar_preview.config(image=profile_avatar_image, text="")
+    except Exception:
+        profile_avatar_image = None
+        profile_avatar_preview.config(image="", text="Cannot load avatar")
 
 
 def choice_label(item, include_type=False):
