@@ -18,3 +18,4 @@ class User(Base):
     base_currency = Column(String, default="EUR")
     role = Column(Enum(UserRole), default=UserRole.USER)
     is_blocked = Column(Boolean, default=False)
+    avatar = Column(String, nullable=True)

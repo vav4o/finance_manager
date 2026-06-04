@@ -4,7 +4,7 @@ from typing import cast
 from sqlalchemy.orm import Session
 from server.app.db.database import get_db
 from server.app.models.user import User
-from server.app.schemas.user_schema import UserCreate, UserResponse
+from server.app.schemas.user_schema import UserCreate, UserResponse, UserUpdate
 from server.app.core.security import hash_password, verify_password, create_access_token
 from server.app.api.dependencies import get_current_user
 from server.app.core.services import check_and_process_recurring
@@ -83,4 +83,33 @@ def read_user_me(current_user: User = Depends(get_current_user)):
     Returns the currently logged-in user.
     Requires a valid JWT token (via get_current_user).
     """
+    return current_user
+
+@router.put("/me", response_model=UserResponse)
+def update_user_me(
+    user_in: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update the user's profile
+    """
+    if user_in.first_name is not None:
+        current_user.first_name = user_in.first_name
+        
+    if user_in.last_name is not None:
+        current_user.last_name = user_in.last_name
+        
+    if user_in.base_currency is not None:
+        current_user.base_currency = user_in.base_currency
+        
+    if user_in.avatar is not None:
+        current_user.avatar = user_in.avatar
+        
+    if user_in.password is not None:
+        current_user.hashed_password = hash_password(user_in.password)
+    
+    db.commit()
+    db.refresh(current_user)
+    
     return current_user
