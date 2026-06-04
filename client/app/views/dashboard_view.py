@@ -45,8 +45,8 @@ profile_avatar_image = None
 
 def create_dashboard_view(window, user, logout):
     clear_window(window)
-    window.geometry("1240x920")
-    window.minsize(1120, 820)
+    window.geometry("1360x980")
+    window.minsize(1220, 860)
 
     header = ttk.Frame(window, style="Header.TFrame", padding=(24, 16))
     header.pack(fill="x")
@@ -206,7 +206,7 @@ def create_categories_tab(parent, title="Categories"):
 
     category_icon = add_entry(parent, "Icon", 4)
     category_icon.insert(0, "💸")
-    ttk.Button(parent, text="Pick emoji", command=open_emoji_picker).grid(
+    ttk.Button(parent, text="Pick emoji", command=open_emoji_picker, takefocus=False).grid(
         row=4, column=2, sticky="ew", pady=8, padx=(10, 0)
     )
 
@@ -235,23 +235,29 @@ def create_transactions_tab(parent):
     global transaction_sort_by, transaction_sort_order, transaction_filter_limit
 
     add_section_title(parent, "Transactions", 0)
-    transaction_account = add_combo(parent, "Account", 1)
-    transaction_category = add_combo(parent, "Category", 2)
-    transaction_amount = add_entry(parent, "Amount", 3)
-    transaction_currency = add_entry(parent, "Currency", 4)
+
+    form_frame = ttk.Frame(parent)
+    form_frame.grid(row=1, column=0, columnspan=4, sticky="ew", pady=(0, 8))
+
+    transaction_account = add_inline_combo(form_frame, "Account", 0, 0)
+    transaction_category = add_inline_combo(form_frame, "Category", 0, 2)
+    transaction_amount = add_inline_entry(form_frame, "Amount", 1, 0)
+    transaction_currency = add_inline_entry(form_frame, "Currency", 1, 2)
     transaction_currency.insert(0, "EUR")
-    transaction_date = add_entry(parent, "Date", 5)
+    transaction_date = add_inline_entry(form_frame, "Date", 2, 0)
     transaction_date.insert(0, dt.date.today().isoformat())
-    transaction_description = add_entry(parent, "Description", 6)
-    transaction_notes = add_entry(parent, "Notes", 7)
+    transaction_description = add_inline_entry(form_frame, "Description", 2, 2)
+    transaction_notes = add_inline_entry(form_frame, "Notes", 3, 0)
 
     transaction_recurring = tk.BooleanVar(value=False)
-    ttk.Checkbutton(parent, text="Recurring monthly", variable=transaction_recurring).grid(
-        row=8, column=1, sticky="w", pady=7, padx=(12, 0)
+    ttk.Checkbutton(form_frame, text="Recurring monthly", variable=transaction_recurring).grid(
+        row=3, column=2, columnspan=2, sticky="w", pady=7, padx=(0, 0)
     )
+    form_frame.columnconfigure(1, weight=1)
+    form_frame.columnconfigure(3, weight=1)
 
     filter_frame = ttk.Frame(parent)
-    filter_frame.grid(row=9, column=0, columnspan=2, sticky="ew", pady=(6, 2))
+    filter_frame.grid(row=2, column=0, columnspan=4, sticky="ew", pady=(4, 2))
 
     ttk.Label(filter_frame, text="Type").grid(row=0, column=0, sticky="w", padx=(0, 6))
     transaction_filter_type = ttk.Combobox(filter_frame, values=["", "income", "expense"], state="readonly", width=10)
@@ -289,12 +295,12 @@ def create_transactions_tab(parent):
     ttk.Label(filter_frame, text="Limit").grid(row=2, column=4, sticky="w", padx=(0, 6), pady=(7, 0))
     transaction_filter_limit = ttk.Entry(filter_frame, width=8)
     transaction_filter_limit.grid(row=2, column=5, sticky="w", pady=(7, 0))
-    transaction_filter_limit.insert(0, "50")
+    transaction_filter_limit.insert(0, "20")
 
     filter_frame.columnconfigure(5, weight=1)
 
     buttons = ttk.Frame(parent)
-    buttons.grid(row=10, column=0, columnspan=2, sticky="ew", pady=(10, 12))
+    buttons.grid(row=3, column=0, columnspan=4, sticky="ew", pady=(10, 12))
     ttk.Button(buttons, text="Add", command=add_transaction).pack(side="left", expand=True, fill="x", padx=(0, 5))
     ttk.Button(buttons, text="Save changes", command=save_transaction_changes).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Clear", command=clear_transaction_form).pack(side="left", expand=True, fill="x", padx=5)
@@ -303,13 +309,19 @@ def create_transactions_tab(parent):
     ttk.Button(buttons, text="Reset filters", command=clear_transaction_filters).pack(side="left", expand=True, fill="x", padx=(5, 0))
 
     columns = ("id", "date", "account", "category", "type", "amount", "currency", "recurring", "description")
-    transaction_table = make_table(parent, columns, 11, 8)
+    transaction_table = make_table(parent, columns, 4, 18, 4)
+    transaction_table.column("date", width=100, stretch=False)
+    transaction_table.column("amount", width=95, stretch=False)
+    transaction_table.column("currency", width=85, stretch=False)
+    transaction_table.column("recurring", width=90, stretch=False)
+    transaction_table.column("description", width=220, stretch=True)
     transaction_table.bind("<<TreeviewSelect>>", select_transaction)
 
     transaction_status = ttk.Label(parent, text="", foreground=STATUS_COLOR)
-    transaction_status.grid(row=12, column=0, columnspan=2, sticky="w", pady=(10, 0))
-    parent.rowconfigure(11, weight=1)
+    transaction_status.grid(row=5, column=0, columnspan=4, sticky="w", pady=(10, 0))
+    parent.rowconfigure(4, weight=1)
     parent.columnconfigure(1, weight=1)
+    parent.columnconfigure(3, weight=1)
     refresh_account_category_choices()
     load_transactions()
 
@@ -427,13 +439,23 @@ def create_admin_stats_tab(parent):
 
 
 def make_table(parent, columns, row, height, columnspan=2):
-    table = ttk.Treeview(parent, columns=columns, show="headings", height=height)
+    table_frame = ttk.Frame(parent)
+    table_frame.grid(row=row, column=0, columnspan=columnspan, sticky="nsew")
+
+    table = ttk.Treeview(table_frame, columns=columns, show="headings", height=height)
+    scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=table.yview)
+    table.configure(yscrollcommand=scrollbar.set)
+
     for column in columns:
         table.heading(column, text=column.title())
         table.column(column, width=125, anchor="w", stretch=True)
     table.column(columns[0], width=55, stretch=False)
     table.tag_configure("picked", background="#bfdbfe", foreground="#0f172a")
-    table.grid(row=row, column=0, columnspan=columnspan, sticky="nsew")
+    table.grid(row=0, column=0, sticky="nsew")
+    scrollbar.grid(row=0, column=1, sticky="ns")
+
+    table_frame.rowconfigure(0, weight=1)
+    table_frame.columnconfigure(0, weight=1)
     return table
 
 
@@ -454,12 +476,32 @@ def add_combo(parent, label, row):
     return combo
 
 
+def add_inline_entry(parent, label, row, column, columnspan=1):
+    ttk.Label(parent, text=label, style="Field.TLabel").grid(row=row, column=column, sticky="w", pady=6, padx=(0, 8))
+    entry = ttk.Entry(parent, width=28)
+    entry.grid(row=row, column=column + 1, columnspan=columnspan, sticky="ew", pady=6, padx=(0, 18))
+    return entry
+
+
+def add_inline_combo(parent, label, row, column):
+    ttk.Label(parent, text=label, style="Field.TLabel").grid(row=row, column=column, sticky="w", pady=6, padx=(0, 8))
+    combo = ttk.Combobox(parent, state="readonly", width=28)
+    combo.grid(row=row, column=column + 1, sticky="ew", pady=6, padx=(0, 18))
+    return combo
+
+
 def is_url(value):
     return value.startswith(("http://", "https://"))
 
 
 def open_emoji_picker():
-    category_icon.focus_set()
+    category_icon.focus_force()
+    category_icon.icursor("end")
+    category_icon.after(120, open_windows_emoji_panel)
+
+
+def open_windows_emoji_panel():
+    category_icon.focus_force()
     try:
         user32 = ctypes.windll.user32
         user32.keybd_event(0x5B, 0, 0, 0)
@@ -467,7 +509,8 @@ def open_emoji_picker():
         user32.keybd_event(0xBE, 0, 2, 0)
         user32.keybd_event(0x5B, 0, 2, 0)
     except Exception:
-        category_status.config(text="Press Win + . to open the Windows emoji picker.")
+        category_status.config(text="Press Win + . while the Icon field is selected.")
+    category_icon.focus_set()
 
 
 def save_profile():
@@ -762,7 +805,9 @@ def load_transactions():
     transaction_table.delete(*transaction_table.get_children())
     try:
         filters = transaction_filters()
+        shown_count = 0
         for transaction in get_transactions(filters):
+            shown_count += 1
             transactions_cache[str(transaction["id"])] = transaction
             account = transaction.get("account") or {}
             category = transaction.get("category") or {}
@@ -778,13 +823,21 @@ def load_transactions():
                 transaction["description"],
             ))
         refresh_account_category_choices()
+        transaction_status.config(text=f"Showing {shown_count} transaction(s).")
+    except ValueError as exc:
+        transaction_status.config(text=str(exc))
     except Exception as exc:
         transaction_status.config(text=str(exc))
 
 
 def transaction_filters():
+    limit = int(transaction_filter_limit.get() or 20)
+    if limit <= 0:
+        raise ValueError("Limit must be a positive number.")
+
     return {
-        "limit": int(transaction_filter_limit.get() or 50),
+        "limit": limit,
+        "offset": 0,
         "transaction_type": transaction_filter_type.get(),
         "account_id": selected_id(transaction_filter_account),
         "category_id": selected_id(transaction_filter_category),
@@ -810,7 +863,7 @@ def format_filter_date(value, end_of_day):
     return f"{value}{suffix}"
 
 
-def clear_transaction_filters():
+def clear_transaction_filters(load_after=True):
     transaction_filter_type.set("")
     transaction_filter_account.set("")
     transaction_filter_category.set("")
@@ -819,8 +872,9 @@ def clear_transaction_filters():
     set_entry(transaction_filter_search, "")
     transaction_sort_by.set("date")
     transaction_sort_order.set("desc")
-    set_entry(transaction_filter_limit, "50")
-    load_transactions()
+    set_entry(transaction_filter_limit, "20")
+    if load_after:
+        load_transactions()
 
 
 def add_transaction(ignore_budget_limit=False):
@@ -830,6 +884,7 @@ def add_transaction(ignore_budget_limit=False):
         transaction_status.config(text="Transaction added.")
         clear_transaction_form()
         load_accounts()
+        clear_transaction_filters(load_after=False)
         load_transactions()
     except ApiError as exc:
         if exc.status == 409:
@@ -957,7 +1012,7 @@ def load_budgets():
             used_percent = budget_used_percent(spent, amount)
             budgets_table.insert("", tk.END, values=(
                 budget["id"], budget["month"], budget["year"], category.get("name", "Overall"),
-                amount, spent, amount - spent, f"{used_percent:.0f}%"
+                amount, spent, amount - spent, budget_used_text(used_percent)
             ))
         refresh_account_category_choices()
         clear_budget_progress()
@@ -1029,6 +1084,12 @@ def budget_used_percent(spent, amount):
     return (spent / amount) * 100
 
 
+def budget_used_text(percent):
+    if percent > 100:
+        return "Exceeded"
+    return f"{percent:.0f}%"
+
+
 def show_budget_progress(values):
     amount = float(values[4])
     spent = float(values[5])
@@ -1045,8 +1106,13 @@ def show_budget_progress(values):
         state = "Near limit"
         color = "#f59e0b"
 
+    if percent > 100:
+        text = f"{state}: {spent:.2f} / {amount:.2f} used, over by {abs(remaining):.2f}"
+    else:
+        text = f"{state}: {spent:.2f} / {amount:.2f} used ({percent:.0f}%), remaining {remaining:.2f}"
+
     budget_progress_label.config(
-        text=f"{state}: {spent:.2f} / {amount:.2f} used ({percent:.0f}%), remaining {remaining:.2f}",
+        text=text,
         foreground=color,
     )
 

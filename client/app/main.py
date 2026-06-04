@@ -21,6 +21,8 @@ def show_login():
 
 
 def show_dashboard(user):
+    window.geometry("1360x980")
+    window.minsize(1220, 860)
     create_dashboard_view(window, user, logout)
 
 
