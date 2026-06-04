@@ -9,6 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class SecuritySettings(BaseSettings):
     secret_key: str = Field(default="", validation_alias="SECRET_KEY")
+    admin_password: str = Field(default="", validation_alias="ADMIN_PASSWORD")
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 120
 

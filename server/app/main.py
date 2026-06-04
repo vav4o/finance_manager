@@ -1,10 +1,17 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from server.app.api.routes import users, accounts, categories, transactions, budgets, admin
-from server.app.db.database import engine, Base, get_db
+from server.app.db.database import engine, Base, get_db, SessionLocal
+from server.app.db.admin_entry import add_admin_user
 
 Base.metadata.create_all(bind=engine)
 
+db = SessionLocal()
+try:
+    add_admin_user(db)
+finally:
+    db.close()
+    
 app = FastAPI(
     title="Personal Finance Manager API",
     description="Backend API for the project Personal Finance Manager.",
