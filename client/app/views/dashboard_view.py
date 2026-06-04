@@ -1,4 +1,5 @@
 import calendar
+import ctypes
 import datetime as dt
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -6,6 +7,7 @@ from tkinter import messagebox, ttk
 from services.account_service import create_account, delete_account, get_accounts, update_account
 from services.admin_service import get_system_statistics, get_users, toggle_user_block
 from services.api import ApiError
+from services.auth_service import update_current_user
 from services.budget_service import create_budget, delete_budget, get_budgets, update_budget
 from services.category_service import create_category, delete_category, get_categories
 from services.transaction_service import (
@@ -99,24 +101,41 @@ def create_admin_dashboard(parent):
 
 
 def create_profile_tab(parent, user):
+    global profile_first_name, profile_last_name, profile_currency, profile_avatar, profile_status
+
     add_section_title(parent, "Profile", 0)
 
-    fields = (
+    readonly_fields = (
         ("Username", user.get("username", "")),
         ("Email", user.get("email", "")),
-        ("First name", user.get("first_name", "")),
-        ("Last name", user.get("last_name") or ""),
-        ("Base currency", user.get("base_currency", "EUR")),
         ("Role", user.get("role", "")),
     )
 
-    for row, (label, value) in enumerate(fields, start=1):
+    for row, (label, value) in enumerate(readonly_fields, start=1):
         entry = add_entry(parent, label, row)
         entry.insert(0, value)
         entry.config(state="readonly")
 
-    profile_status = ttk.Label(parent, text="Profile editing needs a server update endpoint.", foreground=STATUS_COLOR)
-    profile_status.grid(row=len(fields) + 1, column=0, columnspan=2, sticky="w", pady=(14, 0))
+    profile_first_name = add_entry(parent, "First name", 4)
+    profile_first_name.insert(0, user.get("first_name", ""))
+
+    profile_last_name = add_entry(parent, "Last name", 5)
+    profile_last_name.insert(0, user.get("last_name") or "")
+
+    profile_currency = add_entry(parent, "Base currency", 6)
+    profile_currency.insert(0, user.get("base_currency", "EUR"))
+
+    profile_avatar = add_entry(parent, "Avatar URL", 7)
+    profile_avatar.insert(0, user.get("avatar") or "")
+
+    ttk.Button(parent, text="Save profile", command=save_profile).grid(
+        row=8, column=0, columnspan=2, sticky="ew", pady=(16, 0)
+    )
+
+    profile_status = ttk.Label(parent, text="", foreground=STATUS_COLOR)
+    profile_status.grid(row=9, column=0, columnspan=2, sticky="w", pady=(14, 0))
+
+    parent.columnconfigure(1, weight=1)
 
 
 def create_accounts_tab(parent):
@@ -155,7 +174,7 @@ def create_accounts_tab(parent):
 
 
 def create_categories_tab(parent, title="Categories"):
-    global category_name, category_type, category_color, categories_table, category_status
+    global category_name, category_type, category_color, category_icon, categories_table, category_status
 
     add_section_title(parent, title, 0)
     category_name = add_entry(parent, "Name", 1)
@@ -168,19 +187,25 @@ def create_categories_tab(parent, title="Categories"):
     category_color = add_entry(parent, "Color", 3)
     category_color.insert(0, "#2563eb")
 
+    category_icon = add_entry(parent, "Icon", 4)
+    category_icon.insert(0, "💸")
+    ttk.Button(parent, text="Pick emoji", command=open_emoji_picker).grid(
+        row=4, column=2, sticky="ew", pady=8, padx=(10, 0)
+    )
+
     buttons = ttk.Frame(parent)
-    buttons.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(10, 12))
+    buttons.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(10, 12))
     ttk.Button(buttons, text="Add", command=save_category).pack(side="left", expand=True, fill="x", padx=(0, 5))
     ttk.Button(buttons, text="Clear", command=clear_category_form).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Delete", command=remove_category).pack(side="left", expand=True, fill="x", padx=5)
     ttk.Button(buttons, text="Refresh", command=load_categories).pack(side="left", expand=True, fill="x", padx=(5, 0))
 
-    categories_table = make_table(parent, ("id", "name", "type", "color"), 5, 10)
+    categories_table = make_table(parent, ("id", "icon", "name", "type", "color"), 6, 9, 3)
     categories_table.bind("<<TreeviewSelect>>", select_category)
 
     category_status = ttk.Label(parent, text="", foreground=STATUS_COLOR)
-    category_status.grid(row=6, column=0, columnspan=2, sticky="w", pady=(10, 0))
-    parent.rowconfigure(5, weight=1)
+    category_status.grid(row=7, column=0, columnspan=3, sticky="w", pady=(10, 0))
+    parent.rowconfigure(6, weight=1)
     parent.columnconfigure(1, weight=1)
     load_categories()
 
@@ -384,14 +409,14 @@ def create_admin_stats_tab(parent):
     load_admin_stats()
 
 
-def make_table(parent, columns, row, height):
+def make_table(parent, columns, row, height, columnspan=2):
     table = ttk.Treeview(parent, columns=columns, show="headings", height=height)
     for column in columns:
         table.heading(column, text=column.title())
         table.column(column, width=125, anchor="w", stretch=True)
     table.column(columns[0], width=55, stretch=False)
     table.tag_configure("picked", background="#bfdbfe", foreground="#0f172a")
-    table.grid(row=row, column=0, columnspan=2, sticky="nsew")
+    table.grid(row=row, column=0, columnspan=columnspan, sticky="nsew")
     return table
 
 
@@ -412,8 +437,55 @@ def add_combo(parent, label, row):
     return combo
 
 
+def is_url(value):
+    return value.startswith(("http://", "https://"))
+
+
+def open_emoji_picker():
+    category_icon.focus_set()
+    try:
+        user32 = ctypes.windll.user32
+        user32.keybd_event(0x5B, 0, 0, 0)
+        user32.keybd_event(0xBE, 0, 0, 0)
+        user32.keybd_event(0xBE, 0, 2, 0)
+        user32.keybd_event(0x5B, 0, 2, 0)
+    except Exception:
+        category_status.config(text="Press Win + . to open the Windows emoji picker.")
+
+
+def save_profile():
+    first_name = profile_first_name.get().strip()
+    base_currency = profile_currency.get().strip().upper()
+    avatar = profile_avatar.get().strip()
+
+    if len(first_name) < 2:
+        profile_status.config(text="First name must be at least 2 characters.")
+        return
+    if len(base_currency) != 3 or not base_currency.isalpha():
+        profile_status.config(text="Base currency must be a 3-letter code.")
+        return
+    if avatar and not is_url(avatar):
+        profile_status.config(text="Avatar URL must start with http:// or https://.")
+        return
+
+    data = {
+        "first_name": first_name,
+        "last_name": profile_last_name.get().strip() or None,
+        "base_currency": base_currency,
+        "avatar": avatar,
+    }
+
+    try:
+        update_current_user(data)
+        profile_status.config(text="Profile updated.")
+    except Exception as exc:
+        profile_status.config(text=str(exc))
+
+
 def choice_label(item, include_type=False):
-    text = f"{item['id']} - {item['name']}"
+    icon = item.get("icon")
+    name = f"{icon} {item['name']}" if icon else item["name"]
+    text = f"{item['id']} - {name}"
     if include_type:
         text = f"{text} ({item['type']})"
     return text
@@ -561,7 +633,7 @@ def load_categories():
     try:
         for category in get_categories():
             categories_table.insert("", tk.END, values=(
-                category["id"], category["name"], category["type"], category.get("color") or ""
+                category["id"], category.get("icon") or "", category["name"], category["type"], category.get("color") or ""
             ))
         refresh_account_category_choices()
     except Exception as exc:
@@ -575,7 +647,7 @@ def save_category():
         "name": name,
         "type": category_kind,
         "color": category_color.get().strip() or None,
-        "icon": None,
+        "icon": category_icon.get().strip() or None,
     }
     if not name:
         category_status.config(text="Please enter category name.")
@@ -603,9 +675,10 @@ def select_category(event):
     mark_selected_row(categories_table)
     values = categories_table.item(selected[0], "values")
     category_id = values[0]
-    set_entry(category_name, values[1])
-    category_type.set(values[2])
-    set_entry(category_color, values[3])
+    set_entry(category_icon, values[1])
+    set_entry(category_name, values[2])
+    category_type.set(values[3])
+    set_entry(category_color, values[4])
 
 
 def remove_category():
@@ -627,13 +700,14 @@ def clear_category_form():
     set_entry(category_name, "")
     category_type.set("expense")
     set_entry(category_color, "#2563eb")
+    set_entry(category_icon, "💸")
 
 
 def category_exists(name, category_kind):
     name = name.lower()
     for row_id in categories_table.get_children():
         values = categories_table.item(row_id, "values")
-        if values[1].lower() == name and values[2] == category_kind:
+        if values[2].lower() == name and values[3] == category_kind:
             return True
     return False
 

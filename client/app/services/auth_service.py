@@ -1,4 +1,4 @@
-from services.api import post_form, post_json, send_request
+from services.api import auth_headers, post_form, post_json, put_json, send_request
 
 
 access_token = None
@@ -22,6 +22,10 @@ def register_user(user_data):
     return post_json("/users/register", user_data)
 
 
+def update_current_user(user_data):
+    return put_json("/users/me", user_data, headers=auth_headers(get_token()))
+
+
 def get_token():
     return access_token
 
@@ -32,5 +36,4 @@ def logout_user():
 
 
 def get_current_user():
-    headers = {"Authorization": f"Bearer {access_token}"}
-    return send_request("/users/me", headers=headers)
+    return send_request("/users/me", headers=auth_headers(access_token))

@@ -1,5 +1,6 @@
 import json
 import os
+import socket
 from urllib import error, parse, request
 
 
@@ -22,6 +23,8 @@ def send_request(path, body=None, headers=None):
             return json.loads(response.read().decode("utf-8"))
     except error.HTTPError as exc:
         raise read_api_error(exc)
+    except (TimeoutError, socket.timeout):
+        raise Exception("The server did not respond in time.")
     except error.URLError:
         raise Exception("Cannot connect to the server.")
 
@@ -50,6 +53,8 @@ def put_json(path, data, headers=None):
             return json.loads(response.read().decode("utf-8"))
     except error.HTTPError as exc:
         raise read_api_error(exc)
+    except (TimeoutError, socket.timeout):
+        raise Exception("The server did not respond in time.")
     except error.URLError:
         raise Exception("Cannot connect to the server.")
 
@@ -63,6 +68,8 @@ def delete_request(path, headers=None):
             return True
     except error.HTTPError as exc:
         raise read_api_error(exc)
+    except (TimeoutError, socket.timeout):
+        raise Exception("The server did not respond in time.")
     except error.URLError:
         raise Exception("Cannot connect to the server.")
 

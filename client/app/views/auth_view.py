@@ -42,6 +42,7 @@ def create_auth_view(window, after_login):
     register_last_name = add_entry(register_tab, "Last name", 5)
     register_currency = add_entry(register_tab, "Base currency", 6)
     register_currency.insert(0, "EUR")
+    register_avatar = add_entry(register_tab, "Avatar URL", 7)
     register_status = ttk.Label(register_tab, text="", foreground=STATUS_COLOR)
 
     def login_with(username, password):
@@ -69,6 +70,7 @@ def create_auth_view(window, after_login):
             "first_name": register_first_name.get().strip(),
             "last_name": register_last_name.get().strip() or None,
             "base_currency": base_currency,
+            "avatar": register_avatar.get().strip() or None,
         }
 
         confirm_password = register_confirm.get()
@@ -109,6 +111,10 @@ def create_auth_view(window, after_login):
             register_status.config(text="Base currency must be a 3-letter code.")
             return
 
+        if data["avatar"] and not is_url(data["avatar"]):
+            register_status.config(text="Avatar URL must start with http:// or https://.")
+            return
+
         try:
             register_user(data)
 
@@ -125,6 +131,10 @@ def create_auth_view(window, after_login):
     login_status.grid(row=3, column=0, columnspan=2, sticky="w", pady=(16, 0))
 
     register_button = ttk.Button(register_tab, text="Create account", command=register)
-    register_button.grid(row=7, column=0, columnspan=2, sticky="ew", pady=(18, 0))
+    register_button.grid(row=8, column=0, columnspan=2, sticky="ew", pady=(18, 0))
 
-    register_status.grid(row=8, column=0, columnspan=2, sticky="w", pady=(16, 0))
+    register_status.grid(row=9, column=0, columnspan=2, sticky="w", pady=(16, 0))
+
+
+def is_url(value):
+    return value.startswith(("http://", "https://"))

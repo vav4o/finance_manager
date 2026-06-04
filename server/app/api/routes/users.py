@@ -42,6 +42,7 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
         first_name=user_in.first_name,
         last_name=user_in.last_name,
         base_currency=user_in.base_currency,
+        avatar=user_in.avatar,
         hashed_password=hashed_pwd
     )
 
