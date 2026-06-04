@@ -1,3 +1,4 @@
+import ctypes
 from tkinter import ttk
 
 
@@ -26,7 +27,12 @@ def apply_design(window):
     window.option_add("*selectForeground", "#ffffff")
 
     style = ttk.Style()
-    style.theme_use("clam")
+    if "vista" in style.theme_names():
+        style.theme_use("vista")
+    else:
+        style.theme_use("clam")
+
+    round_window_corners(window)
 
     style.configure("TFrame", background=FORM_BACKGROUND)
     style.configure("Header.TFrame", background=HEADER_BACKGROUND)
@@ -86,11 +92,15 @@ def apply_design(window):
 
     style.configure(
         "TButton",
-        padding=(12, 8),
+        padding=(15, 9),
         font=("Segoe UI", 10, "bold"),
         background=BUTTON_BACKGROUND,
         foreground=TITLE_COLOR,
         bordercolor=BORDER_COLOR,
+        lightcolor=BUTTON_BACKGROUND,
+        darkcolor=BUTTON_BACKGROUND,
+        relief="flat",
+        borderwidth=1,
         focusthickness=0,
     )
     style.map(
@@ -104,16 +114,24 @@ def apply_design(window):
     style.configure("TNotebook", background=WINDOW_BACKGROUND, borderwidth=0, tabmargins=(0, 0, 0, 0))
     style.configure(
         "TNotebook.Tab",
-        padding=(18, 9),
-        font=("Segoe UI", 10),
+        padding=(18, 10),
+        font=("Segoe UI", 10, "bold"),
         background=TAB_BACKGROUND,
         foreground=TEXT_COLOR,
-        bordercolor=BORDER_COLOR,
+        bordercolor="#cbd5e1",
+        lightcolor=TAB_BACKGROUND,
+        darkcolor=TAB_BACKGROUND,
+        focuscolor=TAB_BACKGROUND,
+        relief="flat",
     )
     style.map(
         "TNotebook.Tab",
         background=[("selected", TAB_SELECTED), ("active", "#f1f5f9")],
-        foreground=[("selected", TITLE_COLOR)],
+        foreground=[("selected", ACCENT_COLOR), ("active", TITLE_COLOR)],
+        bordercolor=[("selected", ACCENT_COLOR), ("active", "#94a3b8")],
+        lightcolor=[("selected", TAB_SELECTED), ("active", "#f1f5f9")],
+        darkcolor=[("selected", TAB_SELECTED), ("active", "#f1f5f9")],
+        focuscolor=[("selected", TAB_SELECTED), ("active", "#f1f5f9")],
     )
 
     style.configure(
@@ -143,3 +161,17 @@ def apply_design(window):
         lightcolor=ACCENT_COLOR,
         darkcolor=ACCENT_COLOR,
     )
+
+
+def round_window_corners(window):
+    try:
+        hwnd = ctypes.windll.user32.GetParent(window.winfo_id())
+        corner_preference = ctypes.c_int(2)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            33,
+            ctypes.byref(corner_preference),
+            ctypes.sizeof(corner_preference),
+        )
+    except Exception:
+        pass
