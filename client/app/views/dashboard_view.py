@@ -604,7 +604,7 @@ def refresh_account_category_choices():
         ("budget_category", budget_values),
     ):
         combo = globals().get(combo_name)
-        if combo:
+        if combo and combo.winfo_exists():
             combo["values"] = values
             if values and not combo.get():
                 combo.set(values[0])
